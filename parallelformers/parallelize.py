@@ -179,13 +179,17 @@ class parallelize(object):
             master_addr (str): master process address for process communication
             master_port (int): master process port for process communication
         """
+        visible_devices=os.environ['CUDA_VISIBLE_DEVICES'].split(',')
+        if(len(visible_devices) < num_gpus):
+            raise ValueError("CUDA_VISIBLE_DEVICES is less than num_gpus")
+        
         os.environ["TOKENIZERS_PARALLELISM"] = "true"
         os.environ["MKL_SERVICE_FORCE_INTEL"] = "GNU"
         os.environ["MASTER_ADDR"] = str(master_addr)
         os.environ["MASTER_PORT"] = str(master_port)
         os.environ["WORLD_SIZE"] = str(num_gpus)
         os.environ["CUDA_VISIBLE_DEVICES"] = ", ".join(
-            [str(i) for i in range(num_gpus)]
+            [visible_devices[i] for i in range(num_gpus)]
         )
 
     def register_hijack_methods(self, method: str) -> None:
@@ -280,6 +284,7 @@ class parallelize(object):
                 # When the main process done, all processes should frees resources.
                 # So default value is True, but change it according to your needs.
 
+                # start process
                 process.start()
                 self.processes.append(process)
 

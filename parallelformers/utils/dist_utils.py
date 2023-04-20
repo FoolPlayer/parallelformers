@@ -16,6 +16,7 @@ import torch
 import torch.distributed as dist
 from torch import Tensor, nn
 from torch.nn import Linear
+from torch.autograd import Function
 from transformers.modeling_utils import Conv1D
 from transformers.models.ibert.quant_modules import (
     QuantLinear,
@@ -122,3 +123,32 @@ class AllReduceQuantLinear(QuantLinear, ParallelModule):
             * bias_scaling_factor,
             bias_scaling_factor,
         )
+
+# modify to allreduce during backward
+class bpAllReduce(Function):
+    # forward as common
+    @staticmethod
+    def forward(ctx, input):
+        return input
+    
+    # allreduce when backward
+    @staticmethod
+    def backward(ctx, grad_output):
+        return _all_reduce(grad_output)
+
+# inject this function to forward function
+def apply_bpAllReduce(input):
+    return bpAllReduce.apply(input)
+
+# utils
+def _all_reduce(input):
+    if get_mp_group() is not None and get_mp_group() > 1:
+        dist.all_reduce(input,op=dist.ReduceOp.SUM)
+    return input
+
+def get_mp_group():
+    # get the mp group the device is in
+    if dist.is_initialized():
+        return dist.get_world_size()
+    else:
+        return None

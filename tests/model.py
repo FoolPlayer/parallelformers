@@ -40,8 +40,9 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--test-name", required=True, type=str)
     parser.add_argument("--name", required=True, type=str)
-    parser.add_argument("--gpu-from", required=True, type=int)
-    parser.add_argument("--gpu-to", required=True, type=int)
+    # parser.add_argument("--gpu-from", required=True, type=int)
+    # parser.add_argument("--gpu-to", required=True, type=int)
+    parser.add_argument("--num_gpus", required=True, type=int)
     parser.add_argument("--fp16", default=False, action="store_true")
     parser.add_argument("--use-pf", default=False, action="store_true")
     args = parser.parse_args()
@@ -50,14 +51,8 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(args.name)
     print(f"Test Name: [{model.__class__.__name__}]-[{args.test_name}]\n")
 
-    gpus = [
-        _
-        for _ in range(
-            args.gpu_from,
-            args.gpu_to + 1,
-        )
-    ]
-
+    visible_devices=os.environ['CUDA_VISIBLE_DEVICES'].split(',')
+    gpus = [int(visible_devices[i]) for i in range(args.num_gpus)]
     tokens = tokenizer(
         "Hi. My name is Kevin.",
         return_tensors="pt",
@@ -66,7 +61,7 @@ if __name__ == "__main__":
     if args.use_pf:
         parallelize(
             model,
-            num_gpus=args.gpu_to + 1,
+            num_gpus=args.num_gpus,
             fp16=args.fp16,
             verbose="simple",
         )
