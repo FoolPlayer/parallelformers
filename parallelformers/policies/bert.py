@@ -16,7 +16,7 @@ from transformers.models.bert.modeling_bert import BertLayer
 
 from parallelformers.policies.base import Layer, Policy
 from parallelformers.transformers.modeling_bert import BertEmbeddings_
-from parallelformers.utils import AllReduceLinear
+from parallelformers.utils import AllReduceLinear, bpAllReduceLinear
 
 
 class BertPolicy(Policy):

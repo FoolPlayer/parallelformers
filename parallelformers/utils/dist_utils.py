@@ -41,6 +41,19 @@ class ParallelModule(nn.Module):
         return outputs
 
 
+class bpAllReduceLinear(Linear, ParallelModule):
+    """All-reduce grad during bp"""
+
+    def forward(self, input: Tensor) -> Tensor:
+        outputs = apply_bpAllReduce(input)
+        
+        outputs = outputs.matmul(self.weight.t())
+        if self.bias is not None:
+            outputs += self.bias
+
+        return outputs
+
+
 class AllReduceLinear(Linear, ParallelModule):
     """All-reduce linear layer"""
 
@@ -137,7 +150,7 @@ class bpAllReduce(Function):
         return _all_reduce(grad_output)
 
 # inject this function to forward function
-def apply_bpAllReduce(input):
+def apply_bpAllReduce(input)->Tensor:
     return bpAllReduce.apply(input)
 
 # utils
